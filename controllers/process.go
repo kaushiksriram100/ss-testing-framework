@@ -13,6 +13,10 @@ type ProcessController struct {
 	beego.Controller
 }
 
+//Define and initialize an global empty struct channel
+
+var Semaphore chan struct{} //implement semaphore using channels
+
 func (this *ProcessController) Get() {
 	this.Layout = "layout.tpl"
 	this.TplName = "home.tpl"
@@ -32,9 +36,14 @@ func (this *ProcessController) Post() {
 
 	//fmt.Println((*inputdata).RawData)
 
-	//add a counting semaphore here as stream splitter can process only one file at a time. So process one by one. use a empty struct.
+	//add a counting semaphore here as stream splitter can process only one input file at a time (synchronize). So SS process one by one. use a empty struct.
+	//http requests are processed in separate go routines. So other go routines (aka other connections) will block until one connection is processed.
+
+	Semaphore <- struct{}{}
 
 	err := inputdata.RunBySS(resultdata)
+
+	<-Semaphore //release the lock for other connections
 
 	if err != nil {
 		this.Data["ERROR"] = err

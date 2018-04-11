@@ -13,6 +13,10 @@ func main() {
 
 	//beego.Router("/", &controllers.ProcessController{})
 
+	//Get the semaphore from controller and initialize it.
+
+	controllers.Semaphore = make(chan struct{}, 1)
+
 	beego.Router("/process", &controllers.ProcessController{})
 	beego.Run()
 }
