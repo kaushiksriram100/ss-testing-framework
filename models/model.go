@@ -1,3 +1,7 @@
+//package models
+//Author: Sriram Kaushik
+//Date: 04/10/2018
+
 package models
 
 import (

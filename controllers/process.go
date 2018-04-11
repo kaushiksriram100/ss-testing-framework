@@ -1,3 +1,7 @@
+//package controllers
+//Author: Sriram Kaushik
+//Date: 04/10/2018
+
 package controllers
 
 import (
@@ -27,6 +31,8 @@ func (this *ProcessController) Post() {
 	(*inputdata).RawData = []byte(inputs["inputtext"][0])
 
 	//fmt.Println((*inputdata).RawData)
+
+	//add a counting semaphore here as stream splitter can process only one file at a time. So process one by one. use a empty struct.
 
 	err := inputdata.RunBySS(resultdata)
 

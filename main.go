@@ -1,4 +1,6 @@
-//Main entry. Program to process input stream and start SS and then return output stream.
+//Main. Program to process input stream and start SS and then return output stream.
+//Author: Sriram Kaushik
+//Date: 04/10/2018
 
 package main
 
@@ -10,6 +12,7 @@ import (
 func main() {
 
 	//beego.Router("/", &controllers.ProcessController{})
+
 	beego.Router("/process", &controllers.ProcessController{})
 	beego.Run()
 }
