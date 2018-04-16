@@ -13,31 +13,44 @@ import (
 )
 
 type Data struct {
-	RawData []byte
+	RawData    []byte
+	SSConfData []byte
+	ResultData []byte
 }
 
-func (data *Data) RunBySS(output *Data) error {
+//maximum wait time in seconds for stream splitter to process any stream
 
-	//write the input data contents to a file in /var/tmp
-	if err := ioutil.WriteFile("/var/tmp/testing-input.txt", data.RawData, 0755); err != nil {
+const CtxTimeout time.Duration = 4
+
+func (data *Data) RunBySS() error {
+
+	//write the input data contents to a file in /var/tmp where SS config will pick the data from.
+	if err := ioutil.WriteFile("/var/tmp/testing-input.txt", data.RawData, 0644); err != nil {
 		return errors.New("Could not write to an input file")
+	}
+
+	//write the plugins config data to plugins.conf. This overrides the existing conf deployed. Application.conf is deployed via ansible and it has include plugins.conf
+
+	if err := ioutil.WriteFile("/etc/stream-splitter/plugins.conf", data.SSConfData, 0644); err != nil {
+		return errors.New("Could not write to plugins.conf")
 	}
 
 	//input file is ready, now we can start stream splitter.
 
 	//set a context
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3100*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), CtxTimeout*time.Second)
 	defer cancel()
 
 	// set the stream splitter start command.
 
 	cmd := exec.CommandContext(ctx, "service", "stream-splitter", "restart")
 
+	//Read Some SS Log Files
+
 	err := cmd.Run() //Run will immediately return (while the command is running on a fork.)
 
 	if ctx.Err() == context.DeadlineExceeded {
-		return errors.New("ERROR: Some issue with starting stream-splitter. Configs may be wrong or some plugins are malformed")
+		return errors.New("ERROR: Some issue with starting stream-splitter. SS start or Processing is taking more than 6 sec. I am killing SS and cleaning resources (safety first!).")
 	}
 
 	if err != nil {
@@ -48,14 +61,18 @@ func (data *Data) RunBySS(output *Data) error {
 
 	//IF there are no errors then most likely our output file has data that we need to pass back. Let's read that.
 
-	output.RawData, err = ioutil.ReadFile("/var/tmp/testing-output.txt")
+	//I hate using sleep here but it appears that Stream Splitter is not flushing the output to file immediately.
+	//Reading the file immediately shows no results. 1 sec is fine. But just keeping 2s.
+	time.Sleep(2 * time.Second)
+
+	data.ResultData, err = ioutil.ReadFile("/var/tmp/testing-output.txt")
 
 	if err != nil {
 		//some problem reading the output
 		return errors.New("ERROR: Some issue reading the output file. Check in the server")
 	}
 
-	if len(output.RawData) < 1 {
+	if len(data.ResultData) < 1 {
 		return errors.New("WARNING: NO DATA in the OUTPUT file")
 	}
 
